@@ -5,10 +5,23 @@ Description: LogMailer - CloudWatch Log messages emailer
 
 Metadata:
   Author: Michael Ludvig @ aws.nz
+  Description: |
+    LogMailer lambda function is called when a CloudWatch Logs
+    message matched a specified Subscription Filter pattern
+    (see tester-cloudformation.yml for the filter resource).
+
+Parameters:
+  NotificationEmail:
+    Type: String
+    Description: Notification email address.
 
 Resources:
   SnsTopic:
     Type: AWS::SNS::Topic
+    Properties:
+      Subscription:
+      - Endpoint: !Ref NotificationEmail
+        Protocol: email
 
   LambdaRole:
     Type: AWS::IAM::Role
@@ -44,7 +57,7 @@ Resources:
       Description: Forward CloudWatch Logs to a specified SNS topic
       Code:
         ZipFile: |
-          %%{../logmailer-lambda.py}%%
+          %%{logmailer-lambda.py}%%
       Environment:
         Variables:
           SNS_TOPIC_ARN: !Ref SnsTopic
@@ -53,6 +66,12 @@ Resources:
       Role: !GetAtt LambdaRole.Arn
       Runtime: python3.6
       Timeout: 60
+
+  LogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${Lambda}"
+      RetentionInDays: 7
 
 Outputs:
   LogMailerLambdaName:

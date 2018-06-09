@@ -5,5 +5,5 @@ all: ${ALL}
 clean:
 	rm -f ${ALL}
 
-logmailer-cloudformation.yml: logmailer-lambda.py util/logmailer-cloudformation.skeleton.yml
+logmailer-cloudformation.yml: util/logmailer-cloudformation.skeleton.yml logmailer-lambda.py
 	./util/import-files.py --yaml $< > $@

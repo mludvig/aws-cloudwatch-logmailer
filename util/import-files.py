@@ -61,9 +61,6 @@ lineno = 0
 for line in args.file.readlines():
     lineno += 1
     line = line.rstrip('\n\r')
-    # Don't embed comment lines
-    if line.startswith('#'):
-        continue
     m = re.match('^([ \t"\'-]+)%%{(.*)}%%(["\',]*)$', line)
     if not m:
         print(line)

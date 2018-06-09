@@ -58,7 +58,7 @@ def format_log_event(log_event):
     return '[{}] {}'.format(dt, log_event['message'])
 
 def build_url(event_decoded):
-    url = "https://{region}.console.aws.amazon.com/cloudwatch/home?region={region}#logEventViewer:group={logGroup};stream={logStream};start={eventTimestamp}"
+    url = 'https://{region}.console.aws.amazon.com/cloudwatch/home?region={region}#logEventViewer:group={logGroup};stream={logStream};start={eventTimestamp}'
     params = {
         'region': os.environ['AWS_REGION'],
         'logGroup': event_decoded['logGroup'],
@@ -74,7 +74,7 @@ def lambda_handler(event, context):
     # Decode / unzip / parse event
     event_decoded = json.loads(gzip.decompress(base64.b64decode(event['awslogs']['data'])))
     print(event_decoded, flush=True)
-    email_subject += "{}: {}".format(event_decoded['logGroup'], event_decoded['logEvents'][0]['message'])
+    email_subject += '{}: {}'.format(event_decoded['logGroup'], event_decoded['logEvents'][0]['message'])
 
     email_text.append('Log Group:  {}'.format(event_decoded['logGroup']))
     email_text.append('Log Stream: {}'.format(event_decoded['logStream']))
@@ -110,4 +110,4 @@ def lambda_handler(event, context):
     email_text.append('{}'.format(build_url(event_decoded)))
 
     # Despatch the message to SNS
-    despatch_message(subject=email_subject, text="\n".join(email_text))
+    despatch_message(subject=email_subject, text='\n'.join(email_text))
