@@ -1,0 +1,65 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+
+Description: LogMailer - CloudWatch Log messages emailer
+
+Metadata:
+  Author: Michael Ludvig @ aws.nz
+
+Resources:
+  SnsTopic:
+    Type: AWS::SNS::Topic
+
+  LambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Action: sts:AssumeRole
+          Effect: Allow
+          Principal:
+            Service: lambda.amazonaws.com
+      Path: /
+      ManagedPolicyArns:
+      # Use AWSLambdaBasicExecutionRole if not running inside a VPC
+      - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      # Use AWSLambdaVPCAccessExecutionRole if running inside a VPC
+      #- arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
+      # Lambda needs access to CloudWatch Logs
+      - arn:aws:iam::aws:policy/CloudWatchLogsReadOnlyAccess
+      Policies:
+      - PolicyName: SnsPublish
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Action:
+            - sns:Publish
+            Effect: Allow
+            Resource: !Ref SnsTopic
+
+  Lambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      Description: Forward CloudWatch Logs to a specified SNS topic
+      Code:
+        ZipFile: |
+          %%{../logmailer-lambda.py}%%
+      Environment:
+        Variables:
+          SNS_TOPIC_ARN: !Ref SnsTopic
+      Handler: index.lambda_handler
+      MemorySize: 128
+      Role: !GetAtt LambdaRole.Arn
+      Runtime: python3.6
+      Timeout: 60
+
+Outputs:
+  LogMailerLambdaName:
+    Value: !Ref Lambda
+
+  LogMailerLambdaArn:
+    Value: !GetAtt Lambda.Arn
+
+  LogMailerSnsTopic:
+    Value: !Ref SnsTopic
