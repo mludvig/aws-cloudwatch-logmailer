@@ -1,0 +1,109 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+
+Description: LogMailer - Tester lambda
+
+Metadata:
+  Author: Michael Ludvig @ aws.nz
+  Description: |
+    Lambda function that is called every 5 minutes and creates some kind of failure.
+    The failure should trigger LogMailer email.
+
+Parameters:
+  LogMailerLambdaArn:
+    Type: String
+    Description: ARN of the LogMailer Lambda Function (see Outputs of the LogMailer stack)
+
+  AutoRun:
+    Type: String
+    Description: Schedule the Tester Lambda to run every 5 minutes?
+    AllowedValues:
+    - "True"
+    - "False"
+    Default: "True"
+
+Conditions:
+  AutoRun: !Equals [ !Ref AutoRun, "True" ]
+
+Resources:
+
+###
+### Standard Lambda-related resources. See below for LogMailer integration.
+###
+
+  TesterLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Action: sts:AssumeRole
+          Effect: Allow
+          Principal:
+            Service: lambda.amazonaws.com
+      Path: /
+      ManagedPolicyArns:
+      # Use AWSLambdaBasicExecutionRole if not running inside a VPC
+      - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+
+  TesterLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      Description: Fail in one of the predefined ways
+      Code:
+        ZipFile: |
+          %%{tester-lambda.py}%%
+      Handler: index.lambda_handler
+      MemorySize: 128
+      Role: !GetAtt TesterLambdaRole.Arn
+      Runtime: python3.6
+      Timeout: 5
+
+  TesterScheduler:
+    Type: AWS::Events::Rule
+    Condition: AutoRun
+    Properties:
+      Description: Snapshot scheduler
+      ScheduleExpression: !Sub "cron(*/5 * ? * * *)"
+      Targets:
+      - Arn: !GetAtt TesterLambda.Arn
+        Id: TesterLambda_Target
+
+  TesterSchedulerPermission:
+    Type: AWS::Lambda::Permission
+    Condition: AutoRun
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref TesterLambda
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt TesterScheduler.Arn
+
+###
+### The following resources are needed for LogMailer integration
+###
+
+  ## Lambda can create its own LogGroup but we explicitly pre-create it here
+  ## - for easier integration with LogMailer
+  ## - to make it CloudFormation controlled
+  ## - and for Retention Days setting
+  LogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${TesterLambda}"
+      RetentionInDays: 7
+
+  LogMailerTriggerPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref LogMailerLambdaArn
+      Action: lambda:InvokeFunction
+      Principal: logs.amazonaws.com
+      SourceArn: !GetAtt LogGroup.Arn
+
+  LogMailerFilter:
+    Type: AWS::Logs::SubscriptionFilter
+    Properties:
+      FilterPattern: "?ERROR ?Error ?error ?FAIL ?Fail ?fail ?FATAL ?Fatal ?fatal ?Traceback"
+      LogGroupName: !Ref LogGroup
+      DestinationArn: !Ref LogMailerLambdaArn
+
