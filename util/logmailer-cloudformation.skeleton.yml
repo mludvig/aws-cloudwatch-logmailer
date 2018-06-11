@@ -61,6 +61,7 @@ Resources:
       Environment:
         Variables:
           SNS_TOPIC_ARN: !Ref SnsTopic
+          LOG_MINUTES: 2
       Handler: index.lambda_handler
       MemorySize: 128
       Role: !GetAtt LambdaRole.Arn
