@@ -182,6 +182,8 @@ Resources:
       Role: !GetAtt LambdaRole.Arn
       Runtime: python3.6
       Timeout: 60
+      DeadLetterQueue:
+        TargetArn: !Ref SnsTopic
 
   LogGroup:
     Type: AWS::Logs::LogGroup
