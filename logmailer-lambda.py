@@ -28,13 +28,15 @@ import boto3
 sns_topic_arn = os.environ['SNS_TOPIC_ARN']
 
 # Email Subject prefix
-email_subject_prefix = os.environ.get('EMAIL_SUBJECT_PREFIX', '[LogMailer] ')
+email_subject_prefix = os.environ.get('EMAIL_SUBJECT_PREFIX', '[LogMailer]').strip()
+if email_subject_prefix:
+    email_subject_prefix += ' '
 
 # Number of minutes to fetch from log and email, default: 60 (= 1 hour)
-get_log_minutes = os.environ.get('LOG_MINUTES', 60)
+get_log_minutes = int(os.environ.get('LOG_MINUTES', 60))
 
 # Wait this number of seconds for further log messages to arrive
-wait_seconds = os.environ.get('WAIT_SECONDS', 5)
+wait_seconds = int(os.environ.get('WAIT_SECONDS', 5))
 
 
 logs_client = boto3.client('logs')
@@ -45,7 +47,7 @@ def despatch_message(subject, text):
     ret = sns_client.publish(
         TopicArn=sns_topic_arn,
         Message=text,
-        Subject=subject,
+        Subject=subject.strip().replace('\n', ' '),
     )
     print('SNS Message ID: {}'.format(ret['MessageId']), flush=True)
 
