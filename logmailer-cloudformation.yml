@@ -184,7 +184,7 @@ Resources:
       Role: !GetAtt LambdaRole.Arn
       Runtime: python3.6
       Timeout: 60
-      DeadLetterQueue:
+      DeadLetterConfig:
         TargetArn: !Ref SnsTopic
 
   LogGroup:
