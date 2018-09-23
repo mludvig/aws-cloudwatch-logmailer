@@ -47,7 +47,7 @@ def despatch_message(subject, text):
     ret = sns_client.publish(
         TopicArn=sns_topic_arn,
         Message=text,
-        Subject=subject.strip().replace('\n', ' '),
+        Subject=subject.strip().replace('\n', ' ')[:100],
     )
     print('SNS Message ID: {}'.format(ret['MessageId']), flush=True)
 
@@ -57,7 +57,7 @@ def format_event_timestamp(log_event, output_format='%Y-%m-%d %H:%M:%S'):
 
 def format_log_event(log_event):
     dt = format_event_timestamp(log_event)
-    return '[{}] {}'.format(dt, log_event['message'])
+    return '[{}] {}'.format(dt, log_event['message'].strip())
 
 def build_url(event_decoded):
     url = 'https://{region}.console.aws.amazon.com/cloudwatch/home?region={region}#logEventViewer:group={logGroup};stream={logStream};start={eventTimestamp}'
